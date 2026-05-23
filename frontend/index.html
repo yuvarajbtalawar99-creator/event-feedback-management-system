@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Event Feedback Management System — Collect, manage and analyse event feedback in one futuristic dashboard." />
+  <meta name="keywords" content="event feedback, management system, dashboard, analytics" />
+  <title>EventPulse — Event Feedback Management System</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6c63ff',
+            secondary: '#00d4ff',
+            accent: '#ff6b9d',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════
+     PAGE LOADER
+════════════════════════════════════════════ -->
+  <div id="pageLoader">
+    <div class="loader-logo">EventPulse</div>
+    <div class="loader-bar">
+      <div class="loader-bar-fill"></div>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.85rem;">Loading system...</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+     BACKGROUND ORBS
+════════════════════════════════════════════ -->
+  <div class="bg-gradient-orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+     TOAST CONTAINER
+════════════════════════════════════════════ -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- ═══════════════════════════════════════════
+     EDIT FEEDBACK MODAL
+════════════════════════════════════════════ -->
+  <div id="editModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 class="modal-title" id="editModalTitle">
+          <i class="fa-solid fa-pen-to-square" style="color:var(--primary-light);margin-right:8px;"></i>Edit Feedback
+        </h2>
+        <button class="modal-close" id="closeModal" aria-label="Close modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="editForm" novalidate>
+        <input type="hidden" id="editId" />
+        <div class="form-group">
+          <label class="form-label" for="editName">Name</label>
+          <input type="text" id="editName" class="form-input" placeholder="Your name" required />
+          <p class="form-error" id="editNameErr"><i class="fa-solid fa-circle-exclamation"></i> Name is required</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editEmail">Email</label>
+          <input type="email" id="editEmail" class="form-input" placeholder="your@email.com" required />
+          <p class="form-error" id="editEmailErr"><i class="fa-solid fa-circle-exclamation"></i> Valid email required
+          </p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editRating">Rating</label>
+          <select id="editRating" class="form-select">
+            <option value="1">⭐ 1 — Poor</option>
+            <option value="2">⭐⭐ 2 — Fair</option>
+            <option value="3">⭐⭐⭐ 3 — Good</option>
+            <option value="4">⭐⭐⭐⭐ 4 — Very Good</option>
+            <option value="5">⭐⭐⭐⭐⭐ 5 — Excellent</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editMessage">Message</label>
+          <textarea id="editMessage" class="form-textarea" rows="4" placeholder="Update your feedback..."
+            required></textarea>
+          <p class="form-error" id="editMsgErr"><i class="fa-solid fa-circle-exclamation"></i> Message must be at least
+            10 characters</p>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="cancelEdit">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="saveEditBtn">
+            <span id="saveEditText">Save Changes</span>
+            <span class="spinner spinner-sm" id="saveEditSpinner" style="display:none;"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+     ADD EVENT MODAL (Admin Only)
+════════════════════════════════════════════ -->
+  <div id="addEventModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addEventModalTitle">
+    <div class="modal-box" style="max-width:520px;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="addEventModalTitle">
+          <i class="fa-solid fa-calendar-plus" style="color:var(--primary-light);margin-right:8px;"></i>Create New Event
+        </h2>
+        <button class="modal-close" id="closeAddEventModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="addEventForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="newEventTitle">Event Title *</label>
+          <input type="text" id="newEventTitle" class="form-input" placeholder="e.g. AI Workshop 2027" required />
+          <p class="form-error" id="newEventTitleErr"><i class="fa-solid fa-circle-exclamation"></i> Title is required</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="newEventDesc">Description *</label>
+          <textarea id="newEventDesc" class="form-textarea" rows="3" placeholder="Describe the event…" required></textarea>
+          <p class="form-error" id="newEventDescErr"><i class="fa-solid fa-circle-exclamation"></i> Description is required</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="form-group">
+            <label class="form-label" for="newEventDate">Date *</label>
+            <input type="date" id="newEventDate" class="form-input" required />
+            <p class="form-error" id="newEventDateErr"><i class="fa-solid fa-circle-exclamation"></i> Date required</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newEventCategory">Category</label>
+            <select id="newEventCategory" class="form-select">
+              <option value="Technology">Technology</option>
+              <option value="Education">Education</option>
+              <option value="Business">Business</option>
+              <option value="Design">Design</option>
+              <option value="Science">Science</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="newEventLocation">Location *</label>
+          <input type="text" id="newEventLocation" class="form-input" placeholder="e.g. San Francisco, CA" required />
+          <p class="form-error" id="newEventLocationErr"><i class="fa-solid fa-circle-exclamation"></i> Location is required</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="newEventImage">Image URL <span style="color:var(--text-muted);font-size:0.8rem;">(optional)</span></label>
+          <input type="url" id="newEventImage" class="form-input" placeholder="https://images.unsplash.com/…" />
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="cancelAddEvent">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="saveAddEventBtn">
+            <span id="addEventBtnText"><i class="fa-solid fa-plus"></i> Create Event</span>
+            <span class="spinner spinner-sm" id="addEventSpinner" style="display:none;"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+     AUTH MODAL (LOGIN / SIGNUP)
+════════════════════════════════════════════ -->
+  <div id="authModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <div class="modal-box auth-modal-box">
+      <div class="modal-header">
+        <h2 class="modal-title" id="authModalTitle">
+          <i class="fa-solid fa-shield-halved" style="color:var(--primary-light);margin-right:8px;"></i>Access
+          EventPulse
+        </h2>
+        <button class="modal-close" id="closeAuthModal" aria-label="Close modal"><i
+            class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="tabLoginBtn">Login</button>
+        <button class="auth-tab-btn" id="tabSignupBtn">Sign Up</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm" class="auth-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="loginEmail">Email Address</label>
+          <input type="email" id="loginEmail" class="form-input" placeholder="your@email.com" required />
+          <p class="form-error" id="loginEmailErr"><i class="fa-solid fa-circle-exclamation"></i> Valid email is
+            required</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required />
+          <p class="form-error" id="loginPasswordErr"><i class="fa-solid fa-circle-exclamation"></i> Password is
+            required</p>
+        </div>
+        <button type="submit" class="btn btn-primary w-full justify-center" id="submitLoginBtn"
+          style="width:100%;margin-top:16px;">
+          <span id="loginBtnText">Sign In</span>
+          <span class="spinner spinner-sm" id="loginSpinner" style="display:none;"></span>
+        </button>
+      </form>
+
+      <!-- Signup Form -->
+      <form id="signupForm" class="auth-form" style="display:none;" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="signupName">Full Name</label>
+          <input type="text" id="signupName" class="form-input" placeholder="Enter your name" required />
+          <p class="form-error" id="signupNameErr"><i class="fa-solid fa-circle-exclamation"></i> Name is required</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="signupEmail">Email Address</label>
+          <input type="email" id="signupEmail" class="form-input" placeholder="Enter your email" required />
+          <p class="form-error" id="signupEmailErr"><i class="fa-solid fa-circle-exclamation"></i> Valid email is
+            required</p>
+        </div>
+        <div class="form-group">
+          <input type="password" id="signupPassword" class="form-input" placeholder="Enter your password" required />
+          <p class="form-error" id="signupPasswordErr"><i class="fa-solid fa-circle-exclamation"></i> Password must be
+            at least 6 characters</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="signupRole">Select Role</label>
+          <select id="signupRole" class="form-select">
+            <option value="user">👤 Attendee (User)</option>
+            <option value="admin">🔑 Organizer (Admin)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary w-full justify-center" id="submitSignupBtn"
+          style="width:100%;margin-top:16px;">
+          <span id="signupBtnText">Create Account</span>
+          <span class="spinner spinner-sm" id="signupSpinner" style="display:none;"></span>
+        </button>
+      </form>
+
+      <div class="auth-divider">
+        <span>or</span>
+      </div>
+
+      <!-- Google Button Container (HTML API) -->
+      <div id="g_id_onload" data-client_id="11011326600-0b9jgcv2d3s7pmms3crrs8cn83r85s16.apps.googleusercontent.com"
+        data-context="signin" data-ux_mode="popup" data-callback="handleGoogleCredentialResponse"
+        data-auto_prompt="false">
+      </div>
+
+      <div class="g_id_signin" style="display: flex; justify-content: center; margin-top: 10px;" data-type="standard"
+        data-shape="pill" data-theme="outline" data-text="continue_with" data-size="large" data-logo_alignment="left"
+        data-width="320">
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════
+     APP WRAPPER
+════════════════════════════════════════════ -->
+  <div id="app">
+
+    <!-- ─── NAVBAR ──────────────────────────────── -->
+    <nav id="navbar" role="navigation" aria-label="Main navigation">
+      <div class="nav-inner">
+        <!-- Logo -->
+        <div class="nav-logo" id="navLogo" role="button" tabindex="0" aria-label="Go to home">
+          <div class="nav-logo-icon"><i class="fa-solid fa-bolt"></i></div>
+          <span class="nav-logo-text">EventPulse</span>
+        </div>
+
+        <!-- Desktop Links -->
+        <ul class="nav-links" role="list">
+          <li class="nav-link active" data-section="home" id="navHome" role="listitem" tabindex="0">
+            <i class="fa-solid fa-house-chimney" style="margin-right:5px;font-size:0.8rem;"></i>Home
+          </li>
+          <li class="nav-link" data-section="events" id="navEvents" role="listitem" tabindex="0">
+            <i class="fa-solid fa-calendar-days" style="margin-right:5px;font-size:0.8rem;"></i>Events
+          </li>
+          <li class="nav-link" data-section="feedback" id="navFeedback" role="listitem" tabindex="0">
+            <i class="fa-solid fa-comments" style="margin-right:5px;font-size:0.8rem;"></i>Feedback
+          </li>
+          <li class="nav-link" data-section="dashboard" id="navDashboard" role="listitem" tabindex="0">
+            <i class="fa-solid fa-chart-line" style="margin-right:5px;font-size:0.8rem;"></i>Dashboard
+          </li>
+        </ul>
+
+        <!-- Actions -->
+        <div class="nav-actions">
+          <!-- User Profile Badge -->
+          <div id="userProfile" class="user-profile-badge" style="display:none;">
+            <div class="user-avatar-sm" id="userAvatarText">U</div>
+            <span class="user-name-text" id="userNameText">User</span>
+            <button id="logoutBtn" class="logout-btn" title="Logout" aria-label="Logout">
+              <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+          </div>
+          <!-- Login Trigger -->
+          <button id="loginBtn" class="btn btn-secondary btn-sm" style="display:inline-flex;">
+            <i class="fa-solid fa-right-to-bracket"></i> Login
+          </button>
+
+          <button id="darkModeToggle" aria-label="Toggle dark/light mode" title="Toggle theme"></button>
+          <button id="hamburger" aria-label="Open mobile menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Mobile Nav -->
+    <div id="mobileNav" role="navigation" aria-label="Mobile navigation">
+      <div class="mobile-nav-link active" data-section="home">
+        <i class="fa-solid fa-house-chimney" style="margin-right:8px;"></i>Home
+      </div>
+      <div class="mobile-nav-link" data-section="events">
+        <i class="fa-solid fa-calendar-days" style="margin-right:8px;"></i>Events
+      </div>
+      <div class="mobile-nav-link" data-section="feedback">
+        <i class="fa-solid fa-comments" style="margin-right:8px;"></i>Feedback
+      </div>
+      <div class="mobile-nav-link" data-section="dashboard">
+        <i class="fa-solid fa-chart-line" style="margin-right:8px;"></i>Dashboard
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+       HOME SECTION
+  ════════════════════════════════════════ -->
+    <section id="home" class="section active" aria-label="Home">
+      <div class="hero">
+        <!-- Badge -->
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          Live Event Feedback Platform
+        </div>
+
+        <!-- Heading -->
+        <h1 class="hero-title">
+          Capture Every<br />
+          <span class="gradient-text">Event Moment</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          The all-in-one platform to collect, manage, and visualise event feedback.
+          Real-time dashboards, smart analytics, and effortless submissions.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="hero-cta">
+          <button class="btn btn-primary" data-section="events" id="ctaExplore">
+            <i class="fa-solid fa-compass"></i> Explore Events
+          </button>
+          <button class="btn btn-secondary" data-section="dashboard" id="ctaDashboard">
+            <i class="fa-solid fa-chart-pie"></i> View Dashboard
+          </button>
+        </div>
+
+        <!-- Live Stats -->
+        <div class="hero-stats" id="heroStats">
+          <div class="stat-item float-anim" style="animation-delay:0s;">
+            <div class="stat-value" id="statTotalEvents">—</div>
+            <div class="stat-label">Total Events</div>
+          </div>
+          <div class="stat-item float-anim" style="animation-delay:0.3s;">
+            <div class="stat-value" id="statTotalFeedback">—</div>
+            <div class="stat-label">Feedback Given</div>
+          </div>
+          <div class="stat-item float-anim" style="animation-delay:0.6s;">
+            <div class="stat-value" id="statAvgRating">—</div>
+            <div class="stat-label">Avg Rating</div>
+          </div>
+          <div class="stat-item float-anim" style="animation-delay:0.9s;">
+            <div class="stat-value">100%</div>
+            <div class="stat-label">Satisfaction</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features Strip -->
+      <div class="container" style="padding-bottom:80px;">
+        <div class="section-header" style="padding-top:0;">
+          <span class="section-tag">Why EventPulse</span>
+          <h2 class="section-title">Everything You Need</h2>
+          <p class="section-subtitle">Powerful tools designed to streamline your entire feedback workflow.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Feature 1 -->
+          <div class="glass-card p-7 text-center">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-5"
+              style="background:rgba(108,99,255,0.15);">
+              <i class="fa-solid fa-bolt" style="color:var(--primary-light);"></i>
+            </div>
+            <h3 class="font-bold text-lg mb-2" style="color:var(--text-primary);">Real-time Collection</h3>
+            <p class="text-sm" style="color:var(--text-secondary);">Instantly capture feedback from attendees the moment
+              the event ends with our lightning-fast submission system.</p>
+          </div>
+          <!-- Feature 2 -->
+          <div class="glass-card p-7 text-center">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-5"
+              style="background:rgba(0,212,255,0.15);">
+              <i class="fa-solid fa-chart-bar" style="color:var(--secondary);"></i>
+            </div>
+            <h3 class="font-bold text-lg mb-2" style="color:var(--text-primary);">Smart Analytics</h3>
+            <p class="text-sm" style="color:var(--text-secondary);">Interactive charts with rating distributions and
+              per-event breakdowns help you make data-driven decisions effortlessly.</p>
+          </div>
+          <!-- Feature 3 -->
+          <div class="glass-card p-7 text-center">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-5"
+              style="background:rgba(255,107,157,0.15);">
+              <i class="fa-solid fa-shield-halved" style="color:var(--accent);"></i>
+            </div>
+            <h3 class="font-bold text-lg mb-2" style="color:var(--text-primary);">Full CRUD Control</h3>
+            <p class="text-sm" style="color:var(--text-secondary);">Admins can edit, update, or remove any feedback
+              entry directly from the dashboard with instant API sync.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer inside home -->
+      <footer id="footer">
+        <div class="footer-inner">
+          <div class="footer-logo">
+            <div class="nav-logo-icon"><i class="fa-solid fa-bolt"></i></div>
+            <span class="nav-logo-text">EventPulse</span>
+          </div>
+          <p class="footer-copy">© 2026 EventPulse. All rights reserved.</p>
+          <div class="footer-socials">
+            <a href="#" class="social-btn" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+            <a href="#" class="social-btn" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+            <a href="#" class="social-btn" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a href="#" class="social-btn" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+          </div>
+        </div>
+      </footer>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+       EVENTS SECTION
+  ════════════════════════════════════════ -->
+    <section id="events" class="section" aria-label="Events">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">Upcoming Events</span>
+          <h2 class="section-title">Discover <span class="gradient-text">Events</span></h2>
+          <p class="section-subtitle">Browse upcoming events and share your experience after attending.</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="events-controls">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="search" id="eventSearch" class="search-input" placeholder="Search events..."
+              aria-label="Search events" />
+          </div>
+          <div class="filter-tabs" id="filterTabs" role="group" aria-label="Category filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="Technology">Technology</button>
+            <button class="filter-btn" data-filter="Education">Education</button>
+            <button class="filter-btn" data-filter="Business">Business</button>
+            <button class="filter-btn" data-filter="Design">Design</button>
+            <button class="filter-btn" data-filter="Science">Science</button>
+          </div>
+        </div>
+
+        <!-- Events Grid -->
+        <div id="eventsGrid" class="events-grid" aria-live="polite">
+          <div class="spinner-wrap" style="grid-column:1/-1;">
+            <div class="spinner"></div>
+            <p>Loading events…</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+       FEEDBACK SECTION
+  ════════════════════════════════════════ -->
+    <section id="feedback" class="section" aria-label="Submit Feedback">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">Share Your Voice</span>
+          <h2 class="section-title">Submit <span class="gradient-text">Feedback</span></h2>
+          <p class="section-subtitle">Your opinion shapes the future of every event.</p>
+        </div>
+
+        <div class="feedback-layout">
+          <!-- Form -->
+          <div class="feedback-form-wrap">
+            <div class="feedback-card">
+              <h3 class="font-bold text-lg mb-6 flex items-center gap-2" style="color:var(--text-primary);">
+                <i class="fa-solid fa-pen-nib" style="color:var(--primary-light);"></i>
+                New Feedback
+              </h3>
+              <form id="feedbackForm" novalidate>
+                <!-- Name -->
+                <div class="form-group">
+                  <label class="form-label" for="fbName">Full Name *</label>
+                  <input type="text" id="fbName" class="form-input" placeholder="John Doe" maxlength="60" required />
+                  <p class="form-error" id="fbNameErr"><i class="fa-solid fa-circle-exclamation"></i> Name is required
+                  </p>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                  <label class="form-label" for="fbEmail">Email Address *</label>
+                  <input type="email" id="fbEmail" class="form-input" placeholder="john@example.com" required />
+                  <p class="form-error" id="fbEmailErr"><i class="fa-solid fa-circle-exclamation"></i> Please enter a
+                    valid email</p>
+                </div>
+
+                <!-- Event -->
+                <div class="form-group">
+                  <label class="form-label" for="fbEvent">Select Event *</label>
+                  <select id="fbEvent" class="form-select" required>
+                    <option value="">— Choose an event —</option>
+                  </select>
+                  <p class="form-error" id="fbEventErr"><i class="fa-solid fa-circle-exclamation"></i> Please select an
+                    event</p>
+                </div>
+
+                <!-- Star Rating -->
+                <div class="form-group">
+                  <label class="form-label">Rating *</label>
+                  <div class="star-rating" id="starRating" role="radiogroup" aria-label="Rate this event">
+                    <input type="radio" id="star5" name="rating" value="5" />
+                    <label for="star5" title="5 — Excellent" aria-label="5 stars">★</label>
+                    <input type="radio" id="star4" name="rating" value="4" />
+                    <label for="star4" title="4 — Very Good" aria-label="4 stars">★</label>
+                    <input type="radio" id="star3" name="rating" value="3" />
+                    <label for="star3" title="3 — Good" aria-label="3 stars">★</label>
+                    <input type="radio" id="star2" name="rating" value="2" />
+                    <label for="star2" title="2 — Fair" aria-label="2 stars">★</label>
+                    <input type="radio" id="star1" name="rating" value="1" />
+                    <label for="star1" title="1 — Poor" aria-label="1 star">★</label>
+                  </div>
+                  <p class="form-error" id="fbRatingErr"><i class="fa-solid fa-circle-exclamation"></i> Please select a
+                    rating</p>
+                </div>
+
+                <!-- Message -->
+                <div class="form-group">
+                  <label class="form-label" for="fbMessage">Your Feedback *</label>
+                  <textarea id="fbMessage" class="form-textarea" rows="5"
+                    placeholder="Share your experience in detail (min. 10 characters)…" maxlength="500"
+                    required></textarea>
+                  <p class="char-counter"><span id="charCount">0</span>/500</p>
+                  <p class="form-error" id="fbMsgErr"><i class="fa-solid fa-circle-exclamation"></i> Message must be at
+                    least 10 characters</p>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn btn-primary w-full justify-center" id="submitFeedbackBtn"
+                  style="width:100%;">
+                  <span id="submitBtnText"><i class="fa-solid fa-paper-plane"></i> Submit Feedback</span>
+                  <span id="submitBtnSpinner" class="spinner spinner-sm" style="display:none;"></span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Recent Feedback List -->
+          <div class="feedback-list-wrap">
+            <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+              <h3 class="font-bold text-lg flex items-center gap-2" style="color:var(--text-primary);">
+                <i class="fa-solid fa-clock-rotate-left" style="color:var(--secondary);"></i>
+                Recent Feedback
+              </h3>
+              <div class="search-box" style="max-width:220px;min-width:160px;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" id="feedbackSearch" class="search-input" placeholder="Search…"
+                  aria-label="Search feedback" />
+              </div>
+            </div>
+            <div id="feedbackList" aria-live="polite">
+              <div class="spinner-wrap">
+                <div class="spinner"></div>
+                <p>Loading feedback…</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+       DASHBOARD SECTION
+  ════════════════════════════════════════ -->
+    <section id="dashboard" class="section" aria-label="Admin Dashboard">
+      <div class="container dashboard-wrap">
+        <div class="section-header" style="display:flex;flex-direction:column;align-items:center;">
+          <span class="section-tag">Admin Panel</span>
+          <h2 class="section-title"><span class="gradient-text">Dashboard</span></h2>
+          <p class="section-subtitle">Real-time analytics and complete feedback management.</p>
+          <button class="btn btn-primary" id="openAddEventBtn" style="margin-top:16px;">
+            <i class="fa-solid fa-calendar-plus"></i> Create New Event
+          </button>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="dashStats">
+          <div class="stat-card">
+            <div class="stat-card-icon purple"><i class="fa-solid fa-calendar-check"></i></div>
+            <div class="stat-card-info">
+              <div class="stat-card-val" id="dTotalEvents">—</div>
+              <div class="stat-card-label">Total Events</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon cyan"><i class="fa-solid fa-comments"></i></div>
+            <div class="stat-card-info">
+              <div class="stat-card-val" id="dTotalFeedback">—</div>
+              <div class="stat-card-label">Total Feedback</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon pink"><i class="fa-solid fa-star"></i></div>
+            <div class="stat-card-info">
+              <div class="stat-card-val" id="dAvgRating">—</div>
+              <div class="stat-card-label">Average Rating</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon green"><i class="fa-solid fa-trophy"></i></div>
+            <div class="stat-card-info">
+              <div class="stat-card-val" id="dTopEvent">—</div>
+              <div class="stat-card-label">Top Event</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-row">
+          <div class="chart-card">
+            <h3 class="chart-title">
+              <i class="fa-solid fa-chart-bar"></i> Feedback Per Event
+            </h3>
+            <div class="chart-container">
+              <canvas id="feedbackPerEventChart" aria-label="Feedback per event bar chart" role="img"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">
+              <i class="fa-solid fa-chart-pie"></i> Rating Distribution
+            </h3>
+            <div class="chart-container">
+              <canvas id="ratingDistChart" aria-label="Rating distribution doughnut chart" role="img"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feedback Table -->
+        <div>
+          <div class="dash-controls">
+            <h3 class="dash-title"><i class="fa-solid fa-table-list"></i> All Feedback</h3>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <div class="search-box" style="max-width:260px;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" id="dashSearch" class="search-input" placeholder="Search feedback…"
+                  aria-label="Search dashboard" />
+              </div>
+              <select id="dashEventFilter" class="form-select"
+                style="width:auto;padding:10px 40px 10px 14px;border-radius:9999px;font-size:0.85rem;">
+                <option value="all">All Events</option>
+              </select>
+              <button class="btn btn-primary btn-sm" id="refreshDashBtn">
+                <i class="fa-solid fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="feedback-table" id="feedbackTable" aria-label="Feedback data table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Author</th>
+                  <th>Event</th>
+                  <th>Rating</th>
+                  <th>Message</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="feedbackTableBody">
+                <tr>
+                  <td colspan="7">
+                    <div class="spinner-wrap">
+                      <div class="spinner"></div>
+                      <p>Loading…</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ─── Events Management Table ──────────────────────────────── -->
+        <div style="margin-top:48px;">
+          <div class="dash-controls">
+            <h3 class="dash-title"><i class="fa-solid fa-calendar-days"></i> Events Management</h3>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <div class="search-box" style="max-width:260px;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" id="dashEventSearch" class="search-input" placeholder="Search events…"
+                  aria-label="Search events in dashboard" />
+              </div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="feedback-table" id="eventsTable" aria-label="Events management table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Date</th>
+                  <th>Location</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="eventsTableBody">
+                <tr>
+                  <td colspan="6">
+                    <div class="spinner-wrap">
+                      <div class="spinner"></div>
+                      <p>Loading…</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div><!-- /#app -->
+
+  <script src="app.js"></script>
+</body>
+
+</html>
