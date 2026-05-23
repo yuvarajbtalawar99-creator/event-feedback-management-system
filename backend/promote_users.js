@@ -16,7 +16,7 @@ const User = mongoose.model('User', userSchema);
 
 const promoteUsers = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb+srv://EventFeedback:Yuvaraj999@eventfeedback.wxyry8n.mongodb.net/?appName=Eventfeedback');
+    await mongoose.connect(process.env.MONGO_URI || 'URL');
     console.log('Connected to MongoDB.');
     
     // Update all users to admin role
