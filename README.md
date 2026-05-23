@@ -12,18 +12,6 @@
 
 </div>
 
----
-
-## 🌐 Live Links & Demos
-
-| Environment | Component | URL / Link | Status |
-| :--- | :--- | :--- | :--- |
-| **Production** | 💻 Frontend UI (SPA) | [eventpulse-feedback.netlify.app](https://eventpulse-feedback.netlify.app) | `Active` |
-| **Production** | ⚙️ Backend REST API | [eventpulse-api.onrender.com](https://eventpulse-api.onrender.com) | `Active` |
-| **Staging** | 🧪 Full Sandbox Env | [eventpulse-staging.railway.app](https://eventpulse-staging.railway.app) | `Active` |
-
----
-
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
