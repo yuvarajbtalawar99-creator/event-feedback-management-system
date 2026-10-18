@@ -6,12 +6,14 @@
 'use strict';
 
 // ─── Config ─────────────────────────────────────────────────────────────────
-// Set your live deployed backend URL here once deployed on Render or Vercel:
-const PROD_API_URL = 'https://YOUR_BACKEND_APP_NAME.onrender.com/api';
+// Set your live deployed backend URL:
+const PROD_API_URL = 'https://event-feedback-management-system-kohl.vercel.app/api';
 
 const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:5000/api'
-  : (localStorage.getItem('ep_api_url') || PROD_API_URL);
+  : (window.location.hostname.endsWith('vercel.app')
+      ? `${window.location.origin}/api`
+      : (localStorage.getItem('ep_api_url') || PROD_API_URL));
 
 
 // ─── App State ───────────────────────────────────────────────────────────────
