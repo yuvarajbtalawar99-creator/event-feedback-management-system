@@ -13,13 +13,44 @@ const API_BASE = (window.__ENV__ && window.__ENV__.API_URL)
       ? 'http://localhost:5000/api'
       : (localStorage.getItem('ep_api_url') || `${window.location.origin}/api`));
 
-// Dynamically inject Google Client ID from environment variables if present
-if (window.__ENV__ && window.__ENV__.GOOGLE_CLIENT_ID) {
+// Dynamically initialize Google Identity Services from environment variables
+function initGoogleAuth() {
+  const clientId = window.__ENV__?.GOOGLE_CLIENT_ID;
+  if (!clientId) return;
+
   const gIdEl = document.getElementById('g_id_onload');
   if (gIdEl) {
-    gIdEl.setAttribute('data-client_id', window.__ENV__.GOOGLE_CLIENT_ID);
+    gIdEl.setAttribute('data-client_id', clientId);
+  }
+
+  if (window.google?.accounts?.id) {
+    try {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: window.handleGoogleCredentialResponse,
+        auto_select: false,
+      });
+
+      const btnContainer = document.querySelector('.g_id_signin');
+      if (btnContainer && !btnContainer.hasChildNodes()) {
+        google.accounts.id.renderButton(btnContainer, {
+          type: 'standard',
+          shape: 'pill',
+          theme: 'outline',
+          text: 'continue_with',
+          size: 'large',
+          logo_alignment: 'left',
+          width: 320,
+        });
+      }
+    } catch (e) {
+      console.warn('Google GSI init deferred:', e.message);
+    }
   }
 }
+
+initGoogleAuth();
+window.addEventListener('load', initGoogleAuth);
 
 
 // ─── App State ───────────────────────────────────────────────────────────────
