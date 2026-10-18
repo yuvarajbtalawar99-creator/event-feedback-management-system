@@ -6,14 +6,20 @@
 'use strict';
 
 // ─── Config ─────────────────────────────────────────────────────────────────
-// Set your live deployed backend URL:
-const PROD_API_URL = 'https://event-feedback-management-system-kohl.vercel.app/api';
+// Loaded dynamically from window.__ENV__ (generated from environment variables / .env)
+const API_BASE = (window.__ENV__ && window.__ENV__.API_URL)
+  ? window.__ENV__.API_URL
+  : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:5000/api'
+      : (localStorage.getItem('ep_api_url') || `${window.location.origin}/api`));
 
-const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? 'http://localhost:5000/api'
-  : (window.location.hostname.endsWith('vercel.app')
-      ? `${window.location.origin}/api`
-      : (localStorage.getItem('ep_api_url') || PROD_API_URL));
+// Dynamically inject Google Client ID from environment variables if present
+if (window.__ENV__ && window.__ENV__.GOOGLE_CLIENT_ID) {
+  const gIdEl = document.getElementById('g_id_onload');
+  if (gIdEl) {
+    gIdEl.setAttribute('data-client_id', window.__ENV__.GOOGLE_CLIENT_ID);
+  }
+}
 
 
 // ─── App State ───────────────────────────────────────────────────────────────
