@@ -114,10 +114,14 @@ const autoSeed = async () => {
 };
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
-app.listen(PORT, async () => {
-  console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🗄️  Database: eventFeedbackDB\n`);
-  // Give mongoose a moment to connect before seeding
-  setTimeout(autoSeed, 2000);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, async () => {
+    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🗄️  Database: eventFeedbackDB\n`);
+    // Give mongoose a moment to connect before seeding
+    setTimeout(autoSeed, 2000);
+  });
+}
+
+module.exports = app;
